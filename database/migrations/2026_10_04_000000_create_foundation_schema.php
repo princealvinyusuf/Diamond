@@ -22,7 +22,7 @@ return new class extends Migration {
             $table->char('currency', 3)->default('USD');
             $table->decimal('equity', 20, 8)->default(0);
             $table->enum('mode', ['PAPER'])->default('PAPER');
-            $table->timestamp('equity_as_of')->nullable();
+            $table->dateTime('equity_as_of')->nullable();
             $table->timestamps();
         });
 
@@ -37,7 +37,7 @@ return new class extends Migration {
             $table->decimal('volume_min', 16, 8);
             $table->decimal('volume_max', 16, 8);
             $table->decimal('volume_step', 16, 8);
-            $table->timestamp('effective_at');
+            $table->dateTime('effective_at');
             $table->json('provenance')->nullable();
             $table->timestamps();
             $table->unique(['provider', 'symbol', 'effective_at']);
@@ -61,7 +61,7 @@ return new class extends Migration {
             $table->string('provider');
             $table->string('symbol', 32);
             $table->enum('timeframe', ['H1', 'H4', 'D1']);
-            $table->timestamp('ts_open');
+            $table->dateTime('ts_open');
             $table->decimal('open', 20, 8);
             $table->decimal('high', 20, 8);
             $table->decimal('low', 20, 8);
@@ -79,7 +79,7 @@ return new class extends Migration {
             $table->string('symbol', 32);
             $table->decimal('bid', 20, 8);
             $table->decimal('ask', 20, 8);
-            $table->timestamp('quoted_at');
+            $table->dateTime('quoted_at');
             $table->enum('freshness', ['FRESH', 'STALE', 'DEGRADED', 'UNAVAILABLE']);
             $table->timestamps();
             $table->unique(['provider', 'symbol', 'quoted_at']);
@@ -92,7 +92,7 @@ return new class extends Migration {
             $table->enum('timeframe', ['H4'])->default('H4');
             $table->string('strategy_version');
             $table->char('configuration_hash', 64);
-            $table->timestamp('as_of');
+            $table->dateTime('as_of');
             $table->enum('market_bias', ['STRONG_BULLISH', 'BULLISH', 'NEUTRAL', 'BEARISH', 'STRONG_BEARISH']);
             $table->smallInteger('technical_score')->nullable();
             $table->smallInteger('fundamental_score')->nullable();
@@ -111,7 +111,7 @@ return new class extends Migration {
             $table->enum('timeframe', ['H1', 'H4', 'D1']);
             $table->json('indicators');
             $table->json('derived_features')->nullable();
-            $table->timestamp('calculated_at');
+            $table->dateTime('calculated_at');
             $table->timestamps();
             $table->unique(['analysis_run_id', 'timeframe']);
         });
@@ -124,8 +124,8 @@ return new class extends Migration {
             $table->decimal('prior', 24, 10)->nullable();
             $table->decimal('consensus', 24, 10)->nullable();
             $table->decimal('revision', 24, 10)->nullable();
-            $table->timestamp('observed_at');
-            $table->timestamp('vintage_at');
+            $table->dateTime('observed_at');
+            $table->dateTime('vintage_at');
             $table->json('provenance');
             $table->timestamps();
             $table->unique(['source', 'series_key', 'observed_at', 'vintage_at'], 'fundamental_vintage_unique');
@@ -139,7 +139,7 @@ return new class extends Migration {
             $table->char('currency', 3)->default('USD');
             $table->enum('importance', ['LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH']);
             $table->enum('status', ['SCHEDULED', 'RELEASED', 'REVISED', 'CANCELLED']);
-            $table->timestamp('scheduled_at');
+            $table->dateTime('scheduled_at');
             $table->decimal('actual', 24, 10)->nullable();
             $table->decimal('consensus', 24, 10)->nullable();
             $table->decimal('prior', 24, 10)->nullable();
@@ -159,7 +159,7 @@ return new class extends Migration {
             $table->decimal('stop_price', 20, 8)->nullable();
             $table->json('targets')->nullable();
             $table->unsignedTinyInteger('quality_score')->nullable();
-            $table->timestamp('expires_at')->nullable();
+            $table->dateTime('expires_at')->nullable();
             $table->json('reasons');
             $table->timestamps();
         });
@@ -176,7 +176,7 @@ return new class extends Migration {
             $table->decimal('filled_price', 20, 8)->nullable();
             $table->json('cost_assumptions');
             $table->enum('state', ['PENDING', 'FILLED', 'CANCELLED', 'REJECTED']);
-            $table->timestamp('filled_at')->nullable();
+            $table->dateTime('filled_at')->nullable();
             $table->timestamps();
         });
 
@@ -198,8 +198,8 @@ return new class extends Migration {
         Schema::create('trades', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('position_id')->constrained()->restrictOnDelete();
-            $table->timestamp('opened_at');
-            $table->timestamp('closed_at')->nullable();
+            $table->dateTime('opened_at');
+            $table->dateTime('closed_at')->nullable();
             $table->decimal('entry_price', 20, 8);
             $table->decimal('exit_price', 20, 8)->nullable();
             $table->decimal('initial_risk_amount', 20, 8);
@@ -243,8 +243,8 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('backtest_run_id')->constrained()->cascadeOnDelete();
             $table->json('setup_snapshot');
-            $table->timestamp('entered_at');
-            $table->timestamp('exited_at');
+            $table->dateTime('entered_at');
+            $table->dateTime('exited_at');
             $table->decimal('entry_price', 20, 8);
             $table->decimal('exit_price', 20, 8);
             $table->decimal('realized_pl', 20, 8);
@@ -256,7 +256,7 @@ return new class extends Migration {
             $table->id();
             $table->string('provider')->unique();
             $table->unsignedInteger('latency_ms')->nullable();
-            $table->timestamp('last_success_at')->nullable();
+            $table->dateTime('last_success_at')->nullable();
             $table->boolean('is_stale')->default(true);
             $table->string('error_code')->nullable();
             $table->text('error_message')->nullable();
@@ -272,7 +272,7 @@ return new class extends Migration {
             $table->string('subject_id')->nullable();
             $table->json('before')->nullable();
             $table->json('after')->nullable();
-            $table->timestamp('occurred_at');
+            $table->dateTime('occurred_at');
             $table->index(['subject_type', 'subject_id']);
         });
 
