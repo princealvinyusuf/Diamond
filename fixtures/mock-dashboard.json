@@ -1,0 +1,26 @@
+{
+  "contractVersion": "1.0.0",
+  "symbol": "XAUUSD",
+  "timeframe": "H4",
+  "asOf": "2026-10-04T00:00:00Z",
+  "marketBias": "NEUTRAL",
+  "tradeSetup": "BLOCKED",
+  "riskPermission": "BLOCKED",
+  "finalAction": "NO_TRADE",
+  "newsRisk": "ELEVATED",
+  "dataQuality": "UNAVAILABLE",
+  "technicalScore": null,
+  "fundamentalScore": null,
+  "entry": null,
+  "stopLoss": null,
+  "targets": [],
+  "safeVolume": null,
+  "blockReasons": [
+    "Foundation mock: no live market-data provider is connected",
+    "Actionable analysis is unavailable until a later phase"
+  ],
+  "strategyVersion": "h4-gold-v1.0.0-paper",
+  "configurationHash": null,
+  "isMock": true,
+  "executionMode": "PAPER"
+}

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "diamond-quant"
+version = "0.3.0"
+description = "Deterministic dependency-light XAUUSD analysis and historical replay."
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+diamond-analysis = "diamond_quant.analysis_cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "ruff>=0.8", "mypy>=1.13"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/diamond_quant"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["diamond_quant"]

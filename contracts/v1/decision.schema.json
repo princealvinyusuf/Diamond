@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diamond.local/contracts/v1/decision.schema.json",
+  "title": "Diamond Decision Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion", "symbol", "timeframe", "asOf", "marketBias",
+    "tradeSetup", "riskPermission", "finalAction", "newsRisk",
+    "dataQuality", "strategyVersion", "isMock", "blockReasons", "executionMode"
+  ],
+  "properties": {
+    "contractVersion": { "const": "1.0.0" },
+    "symbol": { "const": "XAUUSD" },
+    "timeframe": { "enum": ["H1", "H4", "D1"] },
+    "asOf": { "type": "string", "format": "date-time" },
+    "marketBias": {
+      "enum": ["STRONG_BULLISH", "BULLISH", "NEUTRAL", "BEARISH", "STRONG_BEARISH"]
+    },
+    "tradeSetup": {
+      "enum": ["WATCHING", "ARMED", "VALID", "BLOCKED", "EXPIRED", "OPEN", "CLOSED"]
+    },
+    "riskPermission": { "enum": ["ALLOWED", "BLOCKED"] },
+    "finalAction": { "enum": ["BUY", "SELL", "WAIT_FOR_CONFIRMATION", "NO_TRADE"] },
+    "newsRisk": { "enum": ["LOW", "ELEVATED", "HIGH", "POST_EVENT_STABILIZATION"] },
+    "dataQuality": { "enum": ["FRESH", "STALE", "DEGRADED", "UNAVAILABLE"] },
+    "technicalScore": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+    "fundamentalScore": { "type": ["integer", "null"], "minimum": -100, "maximum": 100 },
+    "entry": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+    "stopLoss": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+    "targets": {
+      "type": "array",
+      "items": { "type": "number", "exclusiveMinimum": 0 }
+    },
+    "safeVolume": { "type": ["number", "null"], "minimum": 0 },
+    "blockReasons": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "pipelineTrace": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["stage", "passed", "reasons"],
+        "properties": {
+          "stage": { "enum": ["data", "risk", "event", "regime", "bias", "setup", "economics", "sizing"] },
+          "passed": { "type": "boolean" },
+          "reasons": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "strategyVersion": { "type": "string", "minLength": 1 },
+    "configurationHash": { "type": ["string", "null"] },
+    "isMock": { "type": "boolean" },
+    "executionMode": { "const": "PAPER" },
+    "technicalAnalysis": {
+      "oneOf": [
+        { "$ref": "technical-analysis.schema.json" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "error"],
+          "properties": {
+            "status": { "const": "UNAVAILABLE" },
+            "error": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code", "message"],
+              "properties": {
+                "code": { "type": "string", "minLength": 1 },
+                "message": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

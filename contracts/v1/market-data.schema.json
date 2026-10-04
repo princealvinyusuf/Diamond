@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diamond.local/contracts/v1/market-data.schema.json",
+  "title": "Diamond Market Data Contracts v1",
+  "$defs": {
+    "quote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "symbol", "bid", "ask", "timestamp", "isMock"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "symbol": { "const": "XAUUSD" },
+        "bid": { "type": "number", "exclusiveMinimum": 0 },
+        "ask": { "type": "number", "exclusiveMinimum": 0 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "isMock": { "type": "boolean" }
+      }
+    },
+    "candle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "symbol", "timeframe", "openTime", "open", "high", "low", "close", "isClosed", "isMock"],
+      "properties": {
+        "provider": { "type": "string" },
+        "symbol": { "const": "XAUUSD" },
+        "timeframe": { "enum": ["H1", "H4", "D1"] },
+        "openTime": { "type": "string", "format": "date-time" },
+        "open": { "type": "number", "exclusiveMinimum": 0 },
+        "high": { "type": "number", "exclusiveMinimum": 0 },
+        "low": { "type": "number", "exclusiveMinimum": 0 },
+        "close": { "type": "number", "exclusiveMinimum": 0 },
+        "volume": { "type": ["number", "null"], "minimum": 0 },
+        "isClosed": { "type": "boolean" },
+        "isMock": { "type": "boolean" }
+      }
+    },
+    "providerHealth": {
+      "type": "object",
+      "required": ["provider", "latency_ms", "last_success_at", "is_stale", "error_code", "error_message", "isMock"],
+      "properties": {
+        "provider": { "type": "string" },
+        "latency_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "last_success_at": { "type": ["string", "null"], "format": "date-time" },
+        "is_stale": { "type": "boolean" },
+        "error_code": { "type": ["string", "null"] },
+        "error_message": { "type": ["string", "null"] },
+        "isMock": { "type": "boolean" }
+      }
+    },
+    "symbolSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "symbol", "currency", "contractSize", "tickSize", "tickValue", "volumeMin", "volumeMax", "volumeStep", "effectiveAt"],
+      "properties": {
+        "provider": { "type": "string" },
+        "symbol": { "const": "XAUUSD" },
+        "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+        "contractSize": { "type": "number", "exclusiveMinimum": 0 },
+        "tickSize": { "type": "number", "exclusiveMinimum": 0 },
+        "tickValue": { "type": "number", "exclusiveMinimum": 0 },
+        "volumeMin": { "type": "number", "exclusiveMinimum": 0 },
+        "volumeMax": { "type": "number", "exclusiveMinimum": 0 },
+        "volumeStep": { "type": "number", "exclusiveMinimum": 0 },
+        "effectiveAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

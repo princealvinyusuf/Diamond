@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diamond.local/contracts/v1/paper-trading.schema.json",
+  "title": "Paper trading lifecycle",
+  "type": "object",
+  "required": ["executionMode", "order", "position", "trade"],
+  "properties": {
+    "executionMode": { "const": "PAPER" },
+    "order": {
+      "type": "object",
+      "required": ["order_key", "state", "side", "volume", "cost_assumptions"],
+      "properties": {
+        "state": { "enum": ["PENDING", "FILLED", "CANCELLED", "REJECTED"] },
+        "side": { "enum": ["BUY", "SELL"] },
+        "cost_assumptions": {
+          "type": "object",
+          "required": ["contract_size", "slippage_price", "commission_round_trip_per_lot", "spread_treatment"],
+          "properties": {
+            "spread_treatment": { "const": "EMBEDDED_IN_BID_ASK" }
+          }
+        }
+      }
+    },
+    "position": {
+      "type": ["object", "null"],
+      "properties": { "state": { "enum": ["OPEN", "CLOSED"] } }
+    },
+    "trade": {
+      "type": ["object", "null"],
+      "properties": {
+        "snapshot_version": { "type": "integer", "minimum": 1 },
+        "entry_snapshot_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    }
+  }
+}

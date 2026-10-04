@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diamond.local/contracts/v1/backtest.schema.json",
+  "title": "Backtest run status",
+  "type": "object",
+  "required": ["id", "status", "datasetKey", "strategyVersion", "engineVersion", "configurationHash", "seed", "partitions"],
+  "properties": {
+    "id": {"type": "string", "format": "uuid"},
+    "status": {"enum": ["QUEUED", "RUNNING", "COMPLETED", "FAILED"]},
+    "datasetKey": {"type": "string"},
+    "strategyVersion": {"type": "string"},
+    "engineVersion": {"type": "string"},
+    "configurationHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "seed": {"type": "integer", "minimum": 0},
+    "partitions": {
+      "type": "object",
+      "required": ["trainEnd", "validationEnd"],
+      "properties": {
+        "trainEnd": {"type": "string", "format": "date-time"},
+        "validationEnd": {"type": "string", "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "walkForward": {
+      "type": ["object", "null"],
+      "properties": {
+        "trainBars": {"type": "integer", "minimum": 1},
+        "testBars": {"type": "integer", "minimum": 1},
+        "stepBars": {"type": "integer", "minimum": 1}
+      }
+    },
+    "results": {"type": ["object", "null"]},
+    "error": {"type": ["string", "null"]}
+  }
+}

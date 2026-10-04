@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diamond.local/contracts/v1/technical-analysis.schema.json",
+  "title": "Diamond Technical Analysis Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "symbol", "asOf", "features", "structure", "alignment", "regime", "bias", "setup"],
+  "properties": {
+    "contractVersion": { "const": "1.0.0" },
+    "symbol": { "const": "XAUUSD" },
+    "asOf": { "type": "string", "format": "date-time" },
+    "features": {
+      "type": "object",
+      "required": ["D1", "H4", "H1"],
+      "additionalProperties": false,
+      "properties": {
+        "D1": { "$ref": "#/$defs/features" },
+        "H4": { "$ref": "#/$defs/features" },
+        "H1": { "$ref": "#/$defs/features" }
+      }
+    },
+    "structure": {
+      "type": "object",
+      "required": ["labels", "zones"],
+      "properties": {
+        "labels": { "type": "array", "items": { "enum": ["HH", "HL", "LH", "LL"] } },
+        "zones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "low", "high"],
+            "properties": {
+              "kind": { "enum": ["support", "resistance"] },
+              "low": { "type": "string" },
+              "high": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "alignment": {
+      "type": "object",
+      "required": ["biases", "aligned", "direction"],
+      "properties": {
+        "biases": { "type": "object" },
+        "aligned": { "type": "boolean" },
+        "direction": { "enum": ["BULLISH", "BEARISH", "NEUTRAL"] }
+      }
+    },
+    "regime": { "enum": ["TREND", "RANGE"] },
+    "bias": { "enum": ["BULLISH", "BEARISH", "NEUTRAL"] },
+    "setup": {
+      "type": "object",
+      "required": ["direction", "family", "confirmed", "evidence", "qualityScore"],
+      "properties": {
+        "direction": { "enum": ["BUY", "SELL", null] },
+        "family": { "enum": ["BREAKOUT_RETEST", "TREND_PULLBACK", "STRUCTURE_REVERSAL", "NONE"] },
+        "confirmed": { "type": "boolean" },
+        "evidence": { "type": "object", "additionalProperties": { "type": "boolean" } },
+        "qualityScore": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    }
+  },
+  "$defs": {
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ema20", "ema50", "ema200", "rsi14", "macd", "macdSignal", "macdHistogram", "atr14", "adx14"],
+      "properties": {
+        "ema20": { "type": ["number", "null"] },
+        "ema50": { "type": ["number", "null"] },
+        "ema200": { "type": ["number", "null"] },
+        "rsi14": { "type": ["number", "null"] },
+        "macd": { "type": ["number", "null"] },
+        "macdSignal": { "type": ["number", "null"] },
+        "macdHistogram": { "type": ["number", "null"] },
+        "atr14": { "type": ["number", "null"] },
+        "adx14": { "type": ["number", "null"] }
+      }
+    }
+  }
+}

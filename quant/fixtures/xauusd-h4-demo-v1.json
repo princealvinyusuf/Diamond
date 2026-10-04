@@ -1,0 +1,19 @@
+{
+  "fixture": true,
+  "datasetVersion": "xauusd-h4-demo-v1",
+  "notice": "Synthetic historical candles for deterministic tests and demonstrations; not market data.",
+  "candles": [
+    {"openTime":"2025-01-01T00:00:00Z","open":2600,"high":2608,"low":2595,"close":2604,"volume":100,"isClosed":true},
+    {"openTime":"2025-01-01T04:00:00Z","open":2604,"high":2610,"low":2600,"close":2607,"volume":110,"isClosed":true},
+    {"openTime":"2025-01-01T08:00:00Z","open":2607,"high":2618,"low":2605,"close":2616,"volume":120,"isClosed":true},
+    {"openTime":"2025-01-01T12:00:00Z","open":2616,"high":2628,"low":2612,"close":2624,"volume":130,"isClosed":true},
+    {"openTime":"2025-01-01T16:00:00Z","open":2624,"high":2644,"low":2620,"close":2640,"volume":140,"isClosed":true},
+    {"openTime":"2025-01-01T20:00:00Z","open":2640,"high":2648,"low":2628,"close":2632,"volume":115,"isClosed":true},
+    {"openTime":"2025-01-02T00:00:00Z","open":2632,"high":2635,"low":2615,"close":2618,"volume":150,"isClosed":true},
+    {"openTime":"2025-01-02T04:00:00Z","open":2618,"high":2622,"low":2598,"close":2602,"volume":160,"isClosed":true},
+    {"openTime":"2025-01-02T08:00:00Z","open":2602,"high":2612,"low":2590,"close":2594,"volume":145,"isClosed":true},
+    {"openTime":"2025-01-02T12:00:00Z","open":2594,"high":2610,"low":2592,"close":2608,"volume":125,"isClosed":true},
+    {"openTime":"2025-01-02T16:00:00Z","open":2608,"high":2625,"low":2605,"close":2622,"volume":135,"isClosed":true},
+    {"openTime":"2025-01-02T20:00:00Z","open":2622,"high":2638,"low":2618,"close":2634,"volume":155,"isClosed":true}
+  ]
+}

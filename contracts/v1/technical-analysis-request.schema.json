@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diamond.local/contracts/v1/technical-analysis-request.schema.json",
+  "title": "Diamond Technical Analysis Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "symbol", "asOf", "series"],
+  "properties": {
+    "contractVersion": { "const": "1.0.0" },
+    "symbol": { "const": "XAUUSD" },
+    "asOf": { "type": "string", "format": "date-time" },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["D1", "H4", "H1"],
+      "properties": {
+        "D1": { "$ref": "#/$defs/candles" },
+        "H4": { "$ref": "#/$defs/candles" },
+        "H1": { "$ref": "#/$defs/candles" }
+      }
+    }
+  },
+  "$defs": {
+    "candles": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["openTime", "open", "high", "low", "close", "volume", "isClosed"],
+        "properties": {
+          "openTime": { "type": "string", "format": "date-time" },
+          "open": { "type": "number", "exclusiveMinimum": 0 },
+          "high": { "type": "number", "exclusiveMinimum": 0 },
+          "low": { "type": "number", "exclusiveMinimum": 0 },
+          "close": { "type": "number", "exclusiveMinimum": 0 },
+          "volume": { "type": ["number", "null"], "minimum": 0 },
+          "isClosed": { "const": true }
+        }
+      }
+    }
+  }
+}

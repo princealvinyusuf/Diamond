@@ -1,0 +1,99 @@
+{
+  "quote": {
+    "displayPrice": "2,650.40",
+    "change": "+0.00%",
+    "session": "Illustrative close",
+    "sourceLabel": "STATIC FIXTURE · NOT LIVE"
+  },
+  "chart": {
+    "label": "Illustrative H4 candles",
+    "priceHigh": "2,674",
+    "priceMid": "2,652",
+    "priceLow": "2,630",
+    "candles": [
+      { "open": 34, "close": 46, "high": 58, "low": 25 },
+      { "open": 48, "close": 39, "high": 64, "low": 31 },
+      { "open": 41, "close": 57, "high": 69, "low": 35 },
+      { "open": 59, "close": 68, "high": 79, "low": 51 },
+      { "open": 67, "close": 55, "high": 76, "low": 45 },
+      { "open": 54, "close": 62, "high": 72, "low": 47 },
+      { "open": 63, "close": 51, "high": 70, "low": 40 },
+      { "open": 50, "close": 43, "high": 60, "low": 32 },
+      { "open": 42, "close": 49, "high": 56, "low": 34 },
+      { "open": 48, "close": 58, "high": 67, "low": 41 },
+      { "open": 57, "close": 52, "high": 65, "low": 44 },
+      { "open": 51, "close": 61, "high": 71, "low": 46 },
+      { "open": 60, "close": 72, "high": 82, "low": 53 },
+      { "open": 71, "close": 65, "high": 79, "low": 57 },
+      { "open": 64, "close": 70, "high": 80, "low": 59 },
+      { "open": 69, "close": 62, "high": 76, "low": 54 }
+    ]
+  },
+  "account": {
+    "name": "Paper account",
+    "equity": "$10,000.00",
+    "riskPerTrade": "0.50%",
+    "dailyLossLimit": "2.00%",
+    "tradesToday": "0 / 3",
+    "cooldown": "Inactive",
+    "safeVolume": "Not calculated"
+  },
+  "technical": {
+    "status": "Unavailable",
+    "items": [
+      { "label": "Structure", "value": "Awaiting validated data" },
+      { "label": "Momentum", "value": "No score" },
+      { "label": "Volatility", "value": "No score" }
+    ]
+  },
+  "fundamental": {
+    "status": "Unscored",
+    "items": [
+      { "label": "USD / yields", "value": "Not connected" },
+      { "label": "Macro regime", "value": "Not evaluated" },
+      { "label": "Positioning", "value": "Not evaluated" }
+    ]
+  },
+  "eventRisk": {
+    "status": "Elevated fixture state",
+    "nextEvent": "No verified calendar feed",
+    "guidance": "Keep risk permission blocked until event data is available."
+  },
+  "explanation": {
+    "summary": "No decision can be produced from a static interface fixture.",
+    "steps": [
+      "Market data freshness cannot be verified.",
+      "Technical and fundamental scores have not been calculated.",
+      "Risk sizing remains unavailable without a validated setup."
+    ]
+  },
+  "journal": {
+    "title": "Paper trade journal",
+    "emptyState": "No confirmed paper trades recorded in this fixture.",
+    "executionMode": "PAPER",
+    "columns": ["Opened", "Setup", "Side", "Entry", "Exit", "Net P/L", "R multiple", "Exit reason"],
+    "summary": {
+      "openPositions": 0,
+      "closedTrades": 0,
+      "realizedPl": "$0.00",
+      "averageR": "Not available"
+    },
+    "safetyNotice": "Orders remain pending until explicitly confirmed. No live execution is available."
+  },
+  "analytics": {
+    "title": "Historical replay analytics",
+    "status": "COMPLETED · FIXTURE",
+    "statusDetail": "Synthetic dataset · diamond-replay/1.0.0 · seed 7",
+    "sampleSize": "48 mock trades",
+    "expectancy": "+0.31 R",
+    "drawdown": "-4.20%",
+    "metrics": [
+      {"label": "Net return", "value": "+12.8%"},
+      {"label": "Profit factor", "value": "1.54"},
+      {"label": "Win rate", "value": "47.9%"},
+      {"label": "Max loss streak", "value": "4"}
+    ],
+    "equityCurve": [10, 15, 13, 24, 20, 31, 37, 34, 49, 44, 58, 63, 60, 72, 78, 86],
+    "drawdownCurve": [0, -1, -2, 0, -3, -1, 0, -2, 0, -4, -2, 0, -1, 0, -1, 0]
+  }
+}
