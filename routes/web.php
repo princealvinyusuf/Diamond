@@ -6,6 +6,7 @@ use App\Http\Controllers\BacktestController;
 use App\Http\Controllers\PaperTradingController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', DashboardController::class)->name('dashboard');
@@ -13,6 +14,9 @@ Route::get('/contracts/v1/decision', [DashboardController::class, 'contract'])
     ->name('contracts.decision.v1');
 
 Route::prefix('api/v1')->group(function (): void {
+    Route::get('/settings', [SettingsController::class, 'show'])->name('settings.show');
+    Route::put('/settings', [SettingsController::class, 'update'])
+        ->middleware('mutation-owner')->name('settings.update');
     Route::get('/health', HealthController::class)->middleware('throttle:analysis');
     Route::middleware('throttle:analysis')->group(function (): void {
         Route::get('/market/quote', [ApiController::class, 'quote']);

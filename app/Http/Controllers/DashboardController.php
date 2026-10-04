@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Decision\AnalysisService;
+use App\Models\BrokerSymbolSpec;
+use App\Models\DailyRiskLedger;
+use App\Models\TradingAccount;
 use Illuminate\Http\Response;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -29,9 +32,11 @@ final class DashboardController
             'candles' => [],
         ];
 
-        if (config('diamond.market_data_provider') !== 'mock') {
+        $analysisResult = null;
+        if (true) {
             try {
                 $result = $analysis->run();
+                $analysisResult = $result;
                 $decision = $result['decision'];
                 $quote = $result['quote'];
                 $h4 = array_values(array_filter(
@@ -39,12 +44,15 @@ final class DashboardController
                     static fn (array $candle): bool => ($candle['isClosed'] ?? false) === true
                         && (new \DateTimeImmutable((string) $candle['openTime']))->modify('+4 hours') <= new \DateTimeImmutable((string) $decision['asOf']),
                 ));
-                $mid = ((float) $quote['bid'] + (float) $quote['ask']) / 2;
+                $indicative = (bool) ($quote['indicative'] ?? false);
+                $mid = $indicative
+                    ? (float) $quote['mid']
+                    : ((float) $quote['bid'] + (float) $quote['ask']) / 2;
                 $dashboard['quote'] = [
                     'displayPrice' => number_format($mid, 2),
-                    'change' => 'Read-only',
+                    'change' => $indicative ? 'INDICATIVE MID · NOT EXECUTABLE' : 'Read-only bid/ask midpoint',
                     'session' => 'Provider snapshot',
-                    'sourceLabel' => strtoupper((string) $quote['provider']).' · READ ONLY',
+                    'sourceLabel' => strtoupper((string) $quote['provider']).($indicative ? ' · INDICATIVE MID' : ' · READ ONLY'),
                 ];
                 $technical = $decision['technicalAnalysis'];
                 $analysisAvailable = isset($technical['features']);
@@ -88,11 +96,13 @@ final class DashboardController
                         ),
                 ];
                 $dataState = [
-                    'mode' => 'PROVIDER',
-                    'label' => strtoupper((string) $quote['provider']).' · READ ONLY',
-                    'message' => $analysisAvailable
-                        ? 'Read-only provider candles and deterministic analysis. Paper mode; no order execution.'
-                        : 'Read-only provider candles are shown; analysis is unavailable and actionable gates are blocked.',
+                    'mode' => ($quote['isMock'] ?? false) ? 'FIXTURE' : 'PROVIDER',
+                    'label' => strtoupper((string) $quote['provider']).(($quote['isMock'] ?? false) ? ' · FIXTURE' : ' · READ ONLY'),
+                    'message' => $indicative
+                        ? 'Indicative midpoint only. There is no executable spread; every action gate is blocked.'
+                        : ($analysisAvailable
+                            ? 'Read-only provider candles and deterministic analysis. Paper mode; no automatic order creation.'
+                            : 'Read-only provider candles are shown; analysis is unavailable and actionable gates are blocked.'),
                     'candles' => array_slice($h4, -250),
                 ];
             } catch (Throwable) {
@@ -152,10 +162,58 @@ final class DashboardController
             }
         }
 
+        $account = $analysisResult['account'] ?? TradingAccount::query()->with('riskProfile')->oldest('id')->first();
+        $profile = $account?->riskProfile;
+        $ledger = $analysisResult['ledger'] ?? ($account === null ? null : DailyRiskLedger::query()
+            ->where('trading_account_id', $account->id)->latest('session_date')->first());
+        $spec = $analysisResult['symbolSpec'] ?? BrokerSymbolSpec::query()
+            ->where('provider', 'manual')->where('symbol', 'XAUUSD')->latest('effective_at')->first();
+        if ($account !== null && $profile !== null) {
+            $dashboard['account'] = [
+                'name' => $account->name,
+                'equity' => '$'.number_format((float) $account->equity, 2),
+                'riskPerTrade' => number_format((float) $profile->risk_per_trade_percent, 2).'%',
+                'dailyLossLimit' => number_format((float) $profile->daily_loss_cap_percent, 2).'%',
+                'tradesToday' => (int) ($ledger?->trades_count ?? 0).' / '.(int) $profile->max_trades_per_day,
+                'cooldown' => $ledger?->cooldown_until?->isFuture()
+                    ? 'Until '.$ledger->cooldown_until->toISOString()
+                    : 'Inactive',
+                'safeVolume' => isset($decision['paperPlan']['safeVolume'])
+                    ? number_format((float) $decision['paperPlan']['safeVolume'], 2).' lots'
+                    : 'Not calculated',
+            ];
+        }
+
         return Inertia::render('Dashboard', [
             'decision' => $decision,
             'dashboard' => $dashboard,
             'dataState' => $dataState,
+            'settings' => [
+                'account' => [
+                    'name' => $account?->name ?? '',
+                    'equity' => (float) ($account?->equity ?? 0),
+                    'mode' => 'PAPER',
+                ],
+                'risk' => [
+                    'riskPerTradePercent' => (float) ($profile?->risk_per_trade_percent ?? 0.5),
+                    'dailyLossCapPercent' => (float) ($profile?->daily_loss_cap_percent ?? 2),
+                    'maxTradesPerDay' => (int) ($profile?->max_trades_per_day ?? 3),
+                    'lossCooldownMinutes' => (int) ($profile?->loss_cooldown_minutes ?? 1440),
+                    'minimumRiskReward' => (float) ($profile?->minimum_rr ?? 2),
+                    'dailyProfitTarget' => $profile?->daily_profit_target === null ? null : (float) $profile->daily_profit_target,
+                    'martingaleEnabled' => false,
+                ],
+                'symbol' => [
+                    'symbol' => 'XAUUSD',
+                    'tickSize' => (float) ($spec?->tick_size ?? 0.01),
+                    'tickValue' => (float) ($spec?->tick_value ?? 1),
+                    'contractSize' => (float) ($spec?->contract_size ?? 100),
+                    'minimumVolume' => (float) ($spec?->volume_min ?? 0.01),
+                    'maximumVolume' => (float) ($spec?->volume_max ?? 100),
+                    'volumeStep' => (float) ($spec?->volume_step ?? 0.01),
+                    'provenance' => $spec === null ? 'fallback-unverified' : 'manual-unverified',
+                ],
+            ],
         ]);
     }
 

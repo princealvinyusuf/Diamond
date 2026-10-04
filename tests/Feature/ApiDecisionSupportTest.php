@@ -2,14 +2,18 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Process;
 use Tests\TestCase;
 
 final class ApiDecisionSupportTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed();
         $features = array_fill_keys(
             ['ema20', 'ema50', 'ema200', 'rsi14', 'macd', 'macdSignal', 'macdHistogram', 'atr14', 'adx14'],
             null,
@@ -21,6 +25,11 @@ final class ApiDecisionSupportTest extends TestCase
             'alignment' => [
                 'biases' => ['D1' => 'NEUTRAL', 'H4' => 'NEUTRAL', 'H1' => 'NEUTRAL'],
                 'aligned' => false, 'direction' => 'NEUTRAL',
+            ],
+            'paperPlan' => [
+                'paperOnly' => true, 'actionable' => false, 'direction' => 'BUY',
+                'entry' => 2650, 'stopLoss' => 2640, 'targets' => [2670],
+                'grossRiskReward' => 2, 'basis' => 'TEST_CLOSED_H4_PLAN',
             ],
             'regime' => 'RANGE', 'bias' => 'NEUTRAL',
             'setup' => [
@@ -48,16 +57,17 @@ final class ApiDecisionSupportTest extends TestCase
             ->assertJsonPath('aggregate.missing.0', 'inflation');
     }
 
-    public function test_analysis_run_is_paper_only_and_requires_account_risk_review(): void
+    public function test_analysis_run_uses_account_risk_and_sizes_non_actionable_plan(): void
     {
         $this->postJson('/api/v1/analysis/run')
             ->assertOk()
             ->assertJsonPath('finalAction', 'NO_TRADE')
             ->assertJsonPath('executionMode', 'PAPER')
             ->assertJsonPath('isMock', true)
-            ->assertJsonPath('riskPermission', 'BLOCKED')
+            ->assertJsonPath('riskPermission', 'ALLOWED')
             ->assertJsonPath('newsRisk', 'HIGH')
-            ->assertJsonPath('blockReasons.0', 'ACCOUNT_RISK_REVIEW_REQUIRED')
+            ->assertJsonPath('paperPlan.safeVolume', 0.04)
+            ->assertJsonPath('paperPlan.paperOnly', true)
             ->assertJsonPath('technicalAnalysis.bias', 'NEUTRAL');
     }
 

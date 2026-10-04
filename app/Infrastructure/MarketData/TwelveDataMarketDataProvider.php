@@ -37,14 +37,28 @@ final class TwelveDataMarketDataProvider implements MarketDataProvider
         try {
             $payload = $this->get('/quote', ['symbol' => $this->symbol($symbol)]);
             $timestamp = isset($payload['timestamp']) ? gmdate(DATE_ATOM, (int) $payload['timestamp']) : null;
-            if ($timestamp === null || !isset($payload['bid'], $payload['ask'])) {
-                throw new RuntimeException('Provider quote omitted bid, ask, or timestamp.');
+            if ($timestamp === null) {
+                throw new RuntimeException('Provider quote omitted its timestamp.');
             }
             $this->success($started, $timestamp);
+            if (isset($payload['bid'], $payload['ask'])) {
+                return [
+                    'provider' => 'twelve-data', 'symbol' => 'XAUUSD',
+                    'bid' => (float) $payload['bid'], 'ask' => (float) $payload['ask'],
+                    'timestamp' => $timestamp, 'isMock' => false,
+                    'indicative' => false, 'hasExecutableSpread' => true,
+                ];
+            }
+            $mid = $payload['close'] ?? $payload['price'] ?? null;
+            if (! is_numeric($mid) || (float) $mid <= 0) {
+                throw new RuntimeException('Provider quote omitted executable bid/ask and a valid indicative price.');
+            }
             return [
                 'provider' => 'twelve-data', 'symbol' => 'XAUUSD',
-                'bid' => (float) $payload['bid'], 'ask' => (float) $payload['ask'],
+                'mid' => (float) $mid,
                 'timestamp' => $timestamp, 'isMock' => false,
+                'indicative' => true, 'hasExecutableSpread' => false,
+                'qualityFlags' => ['INDICATIVE_MID', 'NO_EXECUTABLE_SPREAD'],
             ];
         } catch (Throwable $error) {
             $this->failure($started, $error);

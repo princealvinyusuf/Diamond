@@ -106,6 +106,7 @@ final class DecisionPipeline
             'stopLoss' => $input['setup']['stopLoss'] ?? null,
             'targets' => $input['setup']['targets'] ?? [],
             'safeVolume' => $input['sizing']['safeVolume'] ?? null,
+            'paperPlan' => $input['paperPlan'] ?? null,
             'blockReasons' => array_values(array_unique($reasons)),
             'pipelineTrace' => $trace,
             'strategyVersion' => $input['strategyVersion'] ?? 'h4-gold-v1',

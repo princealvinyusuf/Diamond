@@ -17,7 +17,10 @@ final class TechnicalAnalysisBridgeTest extends TestCase
 
         self::assertTrue($result['ok']);
         self::assertSame('NEUTRAL', $result['analysis']['bias']);
-        Process::assertRan(fn ($process) => str_contains($process->command, 'diamond_quant.analysis_cli'));
+        Process::assertRan(fn ($process) => str_contains(
+            is_array($process->command) ? implode(' ', $process->command) : $process->command,
+            'diamond_quant.analysis_cli',
+        ));
     }
 
     public function test_bridge_fails_closed_on_invalid_engine_output(): void

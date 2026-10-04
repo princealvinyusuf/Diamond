@@ -59,8 +59,12 @@ final class OperationsHardeningTest extends TestCase
     {
         app()->detectEnvironment(fn (): string => 'production');
         try {
-            $this->postJson('/api/v1/backtests', [])->assertForbidden();
-            $this->postJson('/api/v1/paper/orders', [])->assertForbidden();
+            $this->withSession(['_token' => 'test-csrf'])
+                ->withHeader('X-CSRF-TOKEN', 'test-csrf')
+                ->postJson('/api/v1/backtests', [])->assertForbidden();
+            $this->withSession(['_token' => 'test-csrf'])
+                ->withHeader('X-CSRF-TOKEN', 'test-csrf')
+                ->postJson('/api/v1/paper/orders', [])->assertForbidden();
         } finally {
             app()->detectEnvironment(fn (): string => 'testing');
         }

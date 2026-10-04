@@ -18,9 +18,14 @@ final class DailyRiskManager
             ->latest('session_date')
             ->first();
 
-        DailyRiskLedger::query()->firstOrCreate(
-            ['trading_account_id' => $account->id, 'session_date' => $date],
-            [
+        $ledger = DailyRiskLedger::query()
+            ->where('trading_account_id', $account->id)
+            ->whereDate('session_date', $date)
+            ->first();
+        if ($ledger === null) {
+            $ledger = DailyRiskLedger::query()->create([
+                'trading_account_id' => $account->id,
+                'session_date' => $date,
                 'session_timezone' => $timezone,
                 'starting_equity' => $account->equity,
                 'realized_pl' => 0, 'open_risk' => 0, 'trades_count' => 0,
@@ -28,15 +33,11 @@ final class DailyRiskManager
                 'is_locked' => $activeCooldown !== null,
                 'cooldown_until' => $activeCooldown?->cooldown_until,
                 'lock_reason' => $activeCooldown ? 'CONSECUTIVE_LOSS_COOLDOWN' : null,
-            ],
-        );
+            ]);
+        }
 
         /** @var DailyRiskLedger */
-        return DailyRiskLedger::query()
-            ->where('trading_account_id', $account->id)
-            ->where('session_date', $date)
-            ->lockForUpdate()
-            ->firstOrFail();
+        return DailyRiskLedger::query()->lockForUpdate()->findOrFail($ledger->id);
     }
 
     public function assertCanOpen(
@@ -91,7 +92,7 @@ final class DailyRiskManager
             'open_risk' => max(0, round((float) $ledger->open_risk - $risk, 8)),
             'consecutive_losses' => $losses,
             'cooldown_until' => $losses >= $profile->loss_streak_limit
-                ? now()->addMinutes((int) config('diamond.paper.loss_cooldown_minutes', 1440))
+                ? now()->addMinutes((int) $profile->loss_cooldown_minutes)
                 : null,
             'is_locked' => $locked || $losses >= $profile->loss_streak_limit,
             'lock_reason' => $losses >= $profile->loss_streak_limit

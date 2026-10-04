@@ -62,7 +62,7 @@ class AppServiceProvider extends ServiceProvider
         RiskProfile::updated(function (RiskProfile $profile): void {
             $fields = [
                 'risk_per_trade_percent', 'daily_loss_cap_percent', 'max_trades_per_day',
-                'loss_streak_limit', 'minimum_rr', 'daily_profit_target',
+                'loss_streak_limit', 'loss_cooldown_minutes', 'minimum_rr', 'daily_profit_target',
             ];
             $changes = array_intersect_key($profile->getChanges(), array_flip($fields));
             if ($changes === []) {

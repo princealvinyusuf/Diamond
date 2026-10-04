@@ -18,7 +18,9 @@ final class MarketDataQualityGate
     ): array
     {
         $reasons = [];
-        foreach (['bid', 'ask', 'timestamp'] as $field) {
+        $indicative = (bool) ($quote['indicative'] ?? false);
+        $required = $indicative ? ['mid', 'timestamp'] : ['bid', 'ask', 'timestamp'];
+        foreach ($required as $field) {
             if (!array_key_exists($field, $quote)) {
                 $reasons[] = "QUOTE_".strtoupper($field)."_MISSING";
             }
@@ -27,22 +29,31 @@ final class MarketDataQualityGate
             return ['status' => 'UNAVAILABLE', 'passed' => false, 'reasons' => $reasons, 'metrics' => []];
         }
 
-        $bid = filter_var($quote['bid'], FILTER_VALIDATE_FLOAT);
-        $ask = filter_var($quote['ask'], FILTER_VALIDATE_FLOAT);
-        if ($bid === false || $ask === false || $bid <= 0 || $ask < $bid) {
-            throw new InvalidArgumentException('Quote must contain positive bid <= ask.');
+        $spread = null;
+        if ($indicative) {
+            $mid = filter_var($quote['mid'], FILTER_VALIDATE_FLOAT);
+            if ($mid === false || $mid <= 0) {
+                throw new InvalidArgumentException('Indicative quote must contain a positive mid.');
+            }
+            $reasons[] = 'INDICATIVE_MID_NO_EXECUTABLE_SPREAD';
+        } else {
+            $bid = filter_var($quote['bid'], FILTER_VALIDATE_FLOAT);
+            $ask = filter_var($quote['ask'], FILTER_VALIDATE_FLOAT);
+            if ($bid === false || $ask === false || $bid <= 0 || $ask < $bid) {
+                throw new InvalidArgumentException('Quote must contain positive bid <= ask.');
+            }
+            $spread = $ask - $bid;
         }
         $quoteTimestamp = new DateTimeImmutable((string) $quote['timestamp']);
         $signedAge = $now->getTimestamp() - $quoteTimestamp->getTimestamp();
         $age = max(0, $signedAge);
-        $spread = $ask - $bid;
         if ($signedAge < -$maxFutureSkewSeconds) {
             $reasons[] = 'QUOTE_TIMESTAMP_IN_FUTURE';
         }
         if ($age > $maxAgeSeconds) {
             $reasons[] = 'QUOTE_STALE';
         }
-        if ($spread > $maxSpread) {
+        if ($spread !== null && $spread > $maxSpread) {
             $reasons[] = 'SPREAD_TOO_WIDE';
         }
         if ($candles === []) {
@@ -69,7 +80,12 @@ final class MarketDataQualityGate
             'status' => $status,
             'passed' => $reasons === [],
             'reasons' => $reasons,
-            'metrics' => ['ageSeconds' => $age, 'spread' => round($spread, 8)],
+            'metrics' => [
+                'ageSeconds' => $age,
+                'spread' => $spread === null ? null : round($spread, 8),
+                'indicative' => $indicative,
+                'hasExecutableSpread' => ! $indicative,
+            ],
         ];
     }
 }

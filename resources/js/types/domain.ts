@@ -31,6 +31,7 @@ export interface Decision {
   stopLoss: number | null;
   targets: number[];
   safeVolume: number | null;
+  paperPlan: PaperPlan | null;
   blockReasons: string[];
   pipelineTrace?: Array<{
     stage: 'data' | 'risk' | 'event' | 'regime' | 'bias' | 'setup' | 'economics' | 'sizing';
@@ -74,6 +75,33 @@ export interface TechnicalAnalysis {
     qualityScore: number;
     evidence: Record<string, boolean>;
   };
+  paperPlan?: {
+    paperOnly: true;
+    actionable: false;
+    direction: 'BUY' | 'SELL';
+    entry: number;
+    stopLoss: number;
+    targets: number[];
+    grossRiskReward: number;
+    basis: string;
+  } | null;
+}
+
+export interface PaperPlan {
+  paperOnly: true;
+  actionable: false;
+  direction: 'BUY' | 'SELL';
+  entry: number;
+  stopLoss: number;
+  targets: number[];
+  grossRiskReward: number;
+  netRiskReward: number;
+  safeVolume: number | null;
+  dollarRisk: number | null;
+  riskBudget: number;
+  sizingStatus: string;
+  qualityStatus: string;
+  spreadExecutable: boolean;
 }
 
 export interface UnavailableAnalysis {
@@ -147,4 +175,27 @@ export interface DashboardFixture {
 export interface DashboardPanel {
   status: string;
   items: Array<{ label: string; value: string }>;
+}
+
+export interface DashboardSettings {
+  account: { name: string; equity: number; mode: 'PAPER' };
+  risk: {
+    riskPerTradePercent: number;
+    dailyLossCapPercent: number;
+    maxTradesPerDay: number;
+    lossCooldownMinutes: number;
+    minimumRiskReward: number;
+    dailyProfitTarget: number | null;
+    martingaleEnabled: false;
+  };
+  symbol: {
+    symbol: 'XAUUSD';
+    tickSize: number;
+    tickValue: number;
+    contractSize: number;
+    minimumVolume: number;
+    maximumVolume: number;
+    volumeStep: number;
+    provenance: string;
+  };
 }

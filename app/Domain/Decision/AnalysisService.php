@@ -7,6 +7,10 @@ use App\Domain\Fundamental\EventWindowEvaluator;
 use App\Domain\MarketData\MarketDataProvider;
 use App\Domain\MarketData\MarketDataQualityGate;
 use App\Domain\MarketData\TechnicalAnalysisBridge;
+use App\Domain\Risk\RiskCalculator;
+use App\Models\BrokerSymbolSpec;
+use App\Models\DailyRiskLedger;
+use App\Models\TradingAccount;
 use DateInterval;
 use DateTimeImmutable;
 
@@ -19,6 +23,7 @@ final class AnalysisService
         private readonly EventWindowEvaluator $eventGate,
         private readonly TechnicalAnalysisBridge $technical,
         private readonly DecisionPipeline $pipeline,
+        private readonly RiskCalculator $riskCalculator,
     ) {}
 
     /**
@@ -60,6 +65,31 @@ final class AnalysisService
         $technicalAvailable = $technical['ok'] && is_array($analysis);
         $dataQuality = $technicalAvailable ? $quality['status'] : 'UNAVAILABLE';
         $technicalError = $technical['error']['code'] ?? null;
+        $account = TradingAccount::query()->with('riskProfile')->oldest('id')->first();
+        $profile = $account?->riskProfile;
+        $ledger = $account === null ? null : DailyRiskLedger::query()
+            ->where('trading_account_id', $account->id)
+            ->whereDate('session_date', now('UTC')->toDateString())
+            ->first();
+        if ($account !== null && $ledger === null) {
+            $ledger = DailyRiskLedger::query()->create([
+                'trading_account_id' => $account->id,
+                'session_date' => now('UTC')->toDateString(),
+                'session_timezone' => 'UTC',
+                'starting_equity' => $account->equity,
+                'realized_pl' => 0,
+                'open_risk' => 0,
+                'trades_count' => 0,
+                'consecutive_losses' => 0,
+                'is_locked' => false,
+            ]);
+        }
+        $calculatedRisk = $this->riskPermission($account, $ledger);
+        if ($account !== null) {
+            $riskAllowed = $calculatedRisk['allowed'];
+            $riskReasons = $calculatedRisk['reasons'];
+        }
+        $paperPlan = $this->sizePaperPlan($analysis['paperPlan'] ?? null, $account, $quality, $quote);
 
         $decision = $this->pipeline->decide([
             'asOf' => $at->format(DATE_ATOM),
@@ -75,12 +105,18 @@ final class AnalysisService
             'bias' => $analysis['bias'] ?? 'NEUTRAL',
             'setup' => [
                 ...($analysis['setup'] ?? []),
+                'entry' => $paperPlan['entry'] ?? null,
+                'stopLoss' => $paperPlan['stopLoss'] ?? null,
+                'targets' => $paperPlan['targets'] ?? [],
                 'qualityScore' => $analysis['setup']['qualityScore'] ?? 0,
                 'minimumScore' => 60,
             ],
-            // This bridge supplies evidence, not invented trade prices or account sizing.
-            'economics' => ['netRiskReward' => 0, 'minimumRiskReward' => 2],
-            'sizing' => ['safeVolume' => 0],
+            'economics' => [
+                'netRiskReward' => $paperPlan['netRiskReward'] ?? 0,
+                'minimumRiskReward' => (float) ($profile?->minimum_rr ?? 2),
+            ],
+            'sizing' => ['safeVolume' => $paperPlan['safeVolume'] ?? 0],
+            'paperPlan' => $paperPlan,
             'technicalAnalysis' => $technicalAvailable ? $analysis : [
                 'status' => 'UNAVAILABLE',
                 'error' => [
@@ -99,6 +135,82 @@ final class AnalysisService
             'calendarHealth' => $calendarHealth,
             'technical' => $technical,
             'providerHealth' => $this->market->health(),
+            'account' => $account,
+            'ledger' => $ledger,
+            'symbolSpec' => BrokerSymbolSpec::query()->where('provider', 'manual')
+                ->where('symbol', 'XAUUSD')->latest('effective_at')->first(),
+        ];
+    }
+
+    /** @return array{allowed: bool, reasons: list<string>} */
+    private function riskPermission(?TradingAccount $account, ?DailyRiskLedger $ledger): array
+    {
+        if ($account === null || $account->riskProfile === null || $ledger === null) {
+            return ['allowed' => false, 'reasons' => ['ACCOUNT_RISK_PROFILE_UNAVAILABLE']];
+        }
+        $profile = $account->riskProfile;
+        $reasons = [];
+        $lossCap = (float) $ledger->starting_equity * ((float) $profile->daily_loss_cap_percent / 100);
+        if ($ledger->is_locked) {
+            $reasons[] = $ledger->lock_reason ?: 'DAILY_RISK_LOCKED';
+        }
+        if ($ledger->cooldown_until?->isFuture()) {
+            $reasons[] = 'LOSS_COOLDOWN_ACTIVE';
+        }
+        if ($ledger->trades_count >= $profile->max_trades_per_day) {
+            $reasons[] = 'DAILY_TRADE_LIMIT_REACHED';
+        }
+        if (max(0, -(float) $ledger->realized_pl) + (float) $ledger->open_risk >= $lossCap) {
+            $reasons[] = 'DAILY_LOSS_CAP_REACHED';
+        }
+        return ['allowed' => $reasons === [], 'reasons' => array_values(array_unique($reasons))];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function sizePaperPlan(mixed $plan, ?TradingAccount $account, array $quality, array $quote): ?array
+    {
+        if (! is_array($plan) || $account?->riskProfile === null) {
+            return null;
+        }
+        $spec = BrokerSymbolSpec::query()->where('provider', 'manual')->where('symbol', 'XAUUSD')
+            ->latest('effective_at')->first();
+        if ($spec === null) {
+            return [...$plan, 'sizingStatus' => 'NO_MANUAL_SYMBOL_SPEC', 'safeVolume' => null, 'dollarRisk' => null];
+        }
+        $contractSize = (float) $spec->contract_size;
+        $hasExecutableSpread = ! (bool) ($quote['indicative'] ?? false);
+        $costs = [
+            'spreadPerLot' => $hasExecutableSpread
+                ? max(0, (float) $quote['ask'] - (float) $quote['bid']) * $contractSize
+                : 0,
+            'commissionPerLot' => (float) config('diamond.paper.commission_round_trip_per_lot', 7),
+            'slippagePerLot' => (float) config('diamond.paper.slippage_price', 0.05) * $contractSize * 2,
+        ];
+        $sizing = $this->riskCalculator->calculate([
+            'equity' => $account->equity,
+            'riskPercent' => $account->riskProfile->risk_per_trade_percent,
+            'entry' => $plan['entry'],
+            'stopLoss' => $plan['stopLoss'],
+            'target' => $plan['targets'][0] ?? null,
+        ], [
+            'tickSize' => $spec->tick_size,
+            'tickValue' => $spec->tick_value,
+            'minimumVolume' => $spec->volume_min,
+            'maximumVolume' => $spec->volume_max,
+            'volumeStep' => $spec->volume_step,
+        ], $costs);
+
+        return [
+            ...$plan,
+            'actionable' => false,
+            'qualityStatus' => $quality['status'],
+            'safeVolume' => $sizing['safeVolume'],
+            'dollarRisk' => $sizing['actualRisk'],
+            'riskBudget' => $sizing['riskBudget'],
+            'netRiskReward' => $sizing['netRiskReward']['ratio'],
+            'sizingStatus' => $sizing['code'],
+            'costs' => $costs,
+            'spreadExecutable' => $hasExecutableSpread,
         ];
     }
 }

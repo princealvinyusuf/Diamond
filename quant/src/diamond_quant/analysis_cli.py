@@ -148,6 +148,30 @@ def execute(request: dict[str, object]) -> dict[str, object]:
     setup_direction = (
         "BUY" if direction == "BULLISH" else ("SELL" if direction == "BEARISH" else None)
     )
+    paper_plan: dict[str, object] | None = None
+    if setup_direction is not None and h4_candles and atr > 0:
+        entry = h4_candles[-1].close
+        if setup_direction == "BUY":
+            structural = next((p.price for p in reversed(pivots) if p.kind == "LOW" and p.price < entry), None)
+            stop = min(entry - atr * D("1.5"), structural - atr * D("0.25") if structural else entry)
+            risk = entry - stop
+            target = entry + risk * D(2)
+        else:
+            structural = next((p.price for p in reversed(pivots) if p.kind == "HIGH" and p.price > entry), None)
+            stop = max(entry + atr * D("1.5"), structural + atr * D("0.25") if structural else entry)
+            risk = stop - entry
+            target = entry - risk * D(2)
+        if risk > 0 and target > 0:
+            paper_plan = {
+                "paperOnly": True,
+                "actionable": False,
+                "direction": setup_direction,
+                "entry": float(entry),
+                "stopLoss": float(stop),
+                "targets": [float(target)],
+                "grossRiskReward": 2.0,
+                "basis": "LATEST_CLOSED_H4_WITH_STRUCTURAL_ATR_STOP",
+            }
     features: dict[str, Any] = {}
     for timeframe in TIMEFRAMES:
         item = analyses[timeframe]
@@ -172,6 +196,7 @@ def execute(request: dict[str, object]) -> dict[str, object]:
         "alignment": alignment,
         "regime": "TREND" if trend and adx_value is not None and adx_value >= 20 else "RANGE",
         "bias": direction,
+        "paperPlan": paper_plan,
         "setup": {
             "direction": setup_direction,
             "family": family,

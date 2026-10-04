@@ -109,8 +109,9 @@ final class TechnicalAnalysisBridge
 
     private function validOutput(array $payload): bool
     {
-        $topLevel = ['contractVersion', 'symbol', 'asOf', 'features', 'structure', 'alignment', 'regime', 'bias', 'setup'];
-        if (array_diff(array_keys($payload), $topLevel) !== [] || array_diff($topLevel, array_keys($payload)) !== []
+        $requiredTopLevel = ['contractVersion', 'symbol', 'asOf', 'features', 'structure', 'alignment', 'regime', 'bias', 'setup'];
+        $allowedTopLevel = [...$requiredTopLevel, 'paperPlan'];
+        if (array_diff(array_keys($payload), $allowedTopLevel) !== [] || array_diff($requiredTopLevel, array_keys($payload)) !== []
             || ($payload['contractVersion'] ?? null) !== '1.0.0'
             || ($payload['symbol'] ?? null) !== 'XAUUSD'
             || ! is_string($payload['asOf'] ?? null) || strtotime($payload['asOf']) === false
@@ -127,6 +128,22 @@ final class TechnicalAnalysisBridge
             || $payload['setup']['qualityScore'] < 0 || $payload['setup']['qualityScore'] > 100
             || ! in_array($payload['setup']['direction'] ?? null, ['BUY', 'SELL', null], true)
             || ! is_bool($payload['setup']['confirmed'] ?? null)) {
+            return false;
+        }
+        $plan = $payload['paperPlan'] ?? null;
+        if ($plan !== null && (
+            ! is_array($plan)
+            || array_diff(array_keys($plan), ['paperOnly', 'actionable', 'direction', 'entry', 'stopLoss', 'targets', 'grossRiskReward', 'basis']) !== []
+            || array_diff(['paperOnly', 'actionable', 'direction', 'entry', 'stopLoss', 'targets', 'grossRiskReward', 'basis'], array_keys($plan)) !== []
+            || $plan['paperOnly'] !== true
+            || $plan['actionable'] !== false
+            || ! in_array($plan['direction'], ['BUY', 'SELL'], true)
+            || ! is_numeric($plan['entry']) || ! is_numeric($plan['stopLoss'])
+            || ! is_array($plan['targets']) || count($plan['targets']) < 1
+            || ! is_numeric($plan['targets'][0])
+            || (float) $plan['grossRiskReward'] < 2
+            || ! is_string($plan['basis'])
+        )) {
             return false;
         }
         $featureKeys = ['ema20', 'ema50', 'ema200', 'rsi14', 'macd', 'macdSignal', 'macdHistogram', 'atr14', 'adx14'];

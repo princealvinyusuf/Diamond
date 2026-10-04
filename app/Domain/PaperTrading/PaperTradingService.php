@@ -63,7 +63,7 @@ final class PaperTradingService
             $steps = $volumeStep > 0 ? $volume / $volumeStep : 0;
             if ($volume < $minimumVolume || $volume > $maximumVolume
                 || $volumeStep <= 0 || abs($steps - round($steps)) > 1.0e-8) {
-                throw new DomainException('Paper order volume violates the configured broker limits or step.');
+                throw new DomainException('Paper order volume violates the configured minimum, maximum, or step.');
             }
             $volume = (float) $input['volume'];
             $minimum = (float) config('diamond.paper.volume_min', 0.01);

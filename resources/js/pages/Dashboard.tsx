@@ -1,9 +1,14 @@
-import { Head } from '@inertiajs/react';
-import type { CSSProperties } from 'react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import { MarketCandlestickChart } from '../components/MarketCandlestickChart';
-import type { DashboardDataState, DashboardFixture, DashboardPanel, Decision } from '../types/domain';
+import type { DashboardDataState, DashboardFixture, DashboardPanel, DashboardSettings, Decision } from '../types/domain';
 
-type Props = { decision: Decision; dashboard: DashboardFixture; dataState: DashboardDataState };
+type Props = {
+  decision: Decision;
+  dashboard: DashboardFixture;
+  dataState: DashboardDataState;
+  settings: DashboardSettings;
+};
 
 const stateCards: Array<{
   label: string;
@@ -58,7 +63,55 @@ function AnalysisPanel({
   );
 }
 
-export default function Dashboard({ decision, dashboard, dataState }: Props) {
+function SettingsModal({ settings, onClose }: { settings: DashboardSettings; onClose: () => void }) {
+  const { data, setData, put, processing, recentlySuccessful, errors } = useForm<DashboardSettings>(settings);
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    put('/api/v1/settings', { preserveScroll: true });
+  };
+  const number = (value: string) => Number(value);
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div className="panel-heading">
+          <div><p className="panel-eyebrow">LOCAL · SINGLE ACCOUNT</p><h2 id="settings-title">Paper dashboard settings</h2></div>
+          <button className="icon-button" type="button" onClick={onClose} aria-label="Close settings">×</button>
+        </div>
+        <form onSubmit={submit}>
+          <fieldset>
+            <legend>Account and risk</legend>
+            <label>Name<input value={data.account.name} onChange={(e) => setData('account', { ...data.account, name: e.target.value })} /></label>
+            <label>Equity<input type="number" min="100" max="10000000" step="0.01" value={data.account.equity} onChange={(e) => setData('account', { ...data.account, equity: number(e.target.value) })} /></label>
+            <label>Risk / trade %<input type="number" min="0.1" max="2" step="0.1" value={data.risk.riskPerTradePercent} onChange={(e) => setData('risk', { ...data.risk, riskPerTradePercent: number(e.target.value) })} /></label>
+            <label>Daily cap %<input type="number" min="0.5" max="5" step="0.1" value={data.risk.dailyLossCapPercent} onChange={(e) => setData('risk', { ...data.risk, dailyLossCapPercent: number(e.target.value) })} /></label>
+            <label>Max trades<input type="number" min="1" max="10" value={data.risk.maxTradesPerDay} onChange={(e) => setData('risk', { ...data.risk, maxTradesPerDay: number(e.target.value) })} /></label>
+            <label>Loss cooldown (min)<input type="number" min="15" max="10080" value={data.risk.lossCooldownMinutes} onChange={(e) => setData('risk', { ...data.risk, lossCooldownMinutes: number(e.target.value) })} /></label>
+            <label>Minimum R:R<input type="number" min="2" max="5" step="0.1" value={data.risk.minimumRiskReward} onChange={(e) => setData('risk', { ...data.risk, minimumRiskReward: number(e.target.value) })} /></label>
+            <label>Display target ($)<input type="number" min="0" max="1000000" step="0.01" value={data.risk.dailyProfitTarget ?? ''} onChange={(e) => setData('risk', { ...data.risk, dailyProfitTarget: e.target.value === '' ? null : number(e.target.value) })} /></label>
+          </fieldset>
+          <fieldset>
+            <legend>Manual XAUUSD broker specification</legend>
+            <label>Tick size<input type="number" min="0.00000001" step="any" value={data.symbol.tickSize} onChange={(e) => setData('symbol', { ...data.symbol, tickSize: number(e.target.value) })} /></label>
+            <label>Tick value<input type="number" min="0.00000001" step="any" value={data.symbol.tickValue} onChange={(e) => setData('symbol', { ...data.symbol, tickValue: number(e.target.value) })} /></label>
+            <label>Contract size<input type="number" min="0.00000001" step="any" value={data.symbol.contractSize} onChange={(e) => setData('symbol', { ...data.symbol, contractSize: number(e.target.value) })} /></label>
+            <label>Minimum volume<input type="number" min="0.00000001" step="any" value={data.symbol.minimumVolume} onChange={(e) => setData('symbol', { ...data.symbol, minimumVolume: number(e.target.value) })} /></label>
+            <label>Maximum volume<input type="number" min="0.00000001" step="any" value={data.symbol.maximumVolume} onChange={(e) => setData('symbol', { ...data.symbol, maximumVolume: number(e.target.value) })} /></label>
+            <label>Volume step<input type="number" min="0.00000001" step="any" value={data.symbol.volumeStep} onChange={(e) => setData('symbol', { ...data.symbol, volumeStep: number(e.target.value) })} /></label>
+          </fieldset>
+          <p className="form-note">Paper only. Martingale is prohibited. The profit target is display-only and never changes sizing.</p>
+          {Object.keys(errors).length > 0 && <p className="form-error">{Object.values(errors)[0]}</p>}
+          <div className="form-actions">
+            <span>{recentlySuccessful ? 'Saved — dashboard reloaded.' : ''}</span>
+            <button className="primary-button" disabled={processing} type="submit">{processing ? 'Saving…' : 'Save settings'}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+export default function Dashboard({ decision, dashboard, dataState, settings }: Props) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const fixtureMode = dataState.mode === 'FIXTURE';
   const providerMode = dataState.mode === 'PROVIDER' && dataState.candles.length > 0;
   return (
@@ -76,6 +129,7 @@ export default function Dashboard({ decision, dashboard, dataState }: Props) {
             <a href="#analytics">Analytics</a>
           </nav>
           <div className="topbar-actions">
+            <button className="secondary-button" type="button" onClick={() => setSettingsOpen(true)}>Settings</button>
             <span className="fixture-dot"><i /> {dataState.label}</span>
             <span className="paper">PAPER ONLY</span>
           </div>
@@ -85,6 +139,7 @@ export default function Dashboard({ decision, dashboard, dataState }: Props) {
           <section className="notice" role="status">
             <strong>{dataState.mode}</strong>
             <span>{dataState.message}</span>
+            <button className="refresh-button" type="button" onClick={() => router.reload()}>Refresh Analysis</button>
           </section>
 
           <section className="market-header" aria-labelledby="page-title">
@@ -181,7 +236,7 @@ export default function Dashboard({ decision, dashboard, dataState }: Props) {
                 <span className="shield">◇</span>
               </div>
               <div className="equity">
-                <span>Fixture equity</span>
+                <span>Paper equity</span>
                 <strong>{dashboard.account.equity}</strong>
               </div>
               <dl className="metric-list">
@@ -193,6 +248,29 @@ export default function Dashboard({ decision, dashboard, dataState }: Props) {
               </dl>
               <p className="account-note">Sizing is shown only after a validated paper setup passes every gate.</p>
             </aside>
+          </section>
+
+          <section className="panel plan-card" aria-label="Paper plan">
+            <div className="panel-heading">
+              <div><p className="panel-eyebrow">NON-ACTIONABLE CONTEXT</p><h2>Paper plan</h2></div>
+              <span className="status-chip blocked-chip">NO AUTOMATIC ORDER</span>
+            </div>
+            {decision.paperPlan ? (
+              <>
+                <dl className="plan-metrics">
+                  <div><dt>Direction</dt><dd>{decision.paperPlan.direction}</dd></div>
+                  <div><dt>Entry</dt><dd>{decision.paperPlan.entry.toFixed(2)}</dd></div>
+                  <div><dt>Stop</dt><dd>{decision.paperPlan.stopLoss.toFixed(2)}</dd></div>
+                  <div><dt>Target</dt><dd>{decision.paperPlan.targets[0]?.toFixed(2) ?? '—'}</dd></div>
+                  <div><dt>Net R:R</dt><dd>{decision.paperPlan.netRiskReward.toFixed(2)} R</dd></div>
+                  <div><dt>Safe volume</dt><dd>{decision.paperPlan.safeVolume?.toFixed(2) ?? 'Unavailable'}</dd></div>
+                  <div><dt>Dollar risk</dt><dd>{decision.paperPlan.dollarRisk == null ? 'Unavailable' : `$${decision.paperPlan.dollarRisk.toFixed(2)}`}</dd></div>
+                </dl>
+                <button className="paper-action" type="button" disabled>
+                  {decision.finalAction === 'NO_TRADE' ? 'Paper action blocked by gates' : 'Review in existing paper-order flow'}
+                </button>
+              </>
+            ) : <p className="summary">No directional setup exists, so no entry, stop, target, or sizing was proposed.</p>}
           </section>
 
           <section className="analysis-grid">
@@ -281,6 +359,7 @@ export default function Dashboard({ decision, dashboard, dataState }: Props) {
           </footer>
         </main>
       </div>
+      {settingsOpen && <SettingsModal settings={settings} onClose={() => setSettingsOpen(false)} />}
     </>
   );
 }

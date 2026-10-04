@@ -40,6 +40,10 @@ def test_execute_is_deterministic_and_emits_evidence() -> None:
         "direction": "BULLISH",
     }
     assert result["setup"]["direction"] == "BUY"
+    assert result["paperPlan"]["paperOnly"] is True
+    assert result["paperPlan"]["actionable"] is False
+    assert result["paperPlan"]["targets"][0] > result["paperPlan"]["entry"]
+    assert result["paperPlan"]["grossRiskReward"] >= 2
     assert 0 <= result["setup"]["qualityScore"] <= 100
     assert result["features"]["H4"]["ema200"] is not None
 
